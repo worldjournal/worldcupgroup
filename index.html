@@ -192,7 +192,7 @@
   </div>
   <div class="wc-footer">
     <span id="footerNote">更新時間：尚未開賽</span>
-    <button class="btn-edit" onclick="showEdit()">編輯數據</button>
+    <button class="btn-edit" id="editBtn" onclick="showEdit()" style="display:none">編輯數據</button>
   </div>
 </div>
 
@@ -407,6 +407,11 @@ function hideEdit() {
 // ══ 初始化 ══
 buildTabs();
 renderGroup(activeGroup);
+
+// 密碼保護：網址含 ?edit=wj2026 才顯示編輯按鈕
+if (new URLSearchParams(window.location.search).get('edit') === 'wj2026') {
+  document.getElementById('editBtn').style.display = 'block';
+}
 </script>
 </body>
 </html>
