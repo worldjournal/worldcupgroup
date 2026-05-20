@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026世界盃賽程表</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --red: #C8102E; --dark: #1a1a2e; --mid: #2d2d44; --gold: #D4AF37;
+    --light: #f5f5f0; --border: #e0ddd5; --text: #1a1a1a; --muted: #888;
+    --fox: #003087; --fs1: #1a6b3c;
+  }
+  body { font-family: 'Noto Sans TC', sans-serif; background: #f8f7f3; color: var(--text); padding: 12px; }
+
+  .wc-widget { max-width: 720px; background: #fff; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.07); }
+
+  /* 頁首 */
+  .wc-header { background: var(--dark); color: #fff; padding: 14px 18px 12px; display: flex; align-items: center; justify-content: space-between; }
+  .wc-header-left { display: flex; align-items: center; gap: 10px; }
+  .wc-trophy { font-size: 22px; filter: drop-shadow(0 0 6px rgba(212,175,55,.6)); }
+  .wc-title { font-family: 'Noto Serif TC', serif; font-size: 15px; font-weight: 700; letter-spacing: .04em; }
+  .wc-subtitle { font-size: 10px; color: rgba(255,255,255,.5); margin-top: 2px; }
+
+  /* 日期選擇器 */
+  .date-bar { background: var(--mid); overflow-x: auto; scrollbar-width: none; display: flex; border-bottom: 2px solid var(--red); }
+  .date-bar::-webkit-scrollbar { display: none; }
+  .date-btn { flex: 0 0 auto; padding: 8px 12px; cursor: pointer; border: none; background: none; color: rgba(255,255,255,.5); font-family: inherit; font-size: 11px; font-weight: 700; text-align: center; white-space: nowrap; transition: color .2s; line-height: 1.4; }
+  .date-btn:hover { color: #fff; }
+  .date-btn.active { color: var(--gold); border-bottom: 2px solid var(--gold); margin-bottom: -2px; }
+  .date-btn.today { color: #fff; }
+  .date-btn .day-num { font-size: 14px; display: block; }
+  .date-btn .day-name { font-size: 9px; opacity: .7; }
+
+  /* 賽程列表 */
+  .matches { padding: 8px 0; }
+  .match-row { display: flex; align-items: center; padding: 10px 14px; border-bottom: 1px solid #f0ede8; gap: 10px; }
+  .match-row:last-child { border-bottom: none; }
+  .match-row:hover { background: #fdfcf8; }
+
+  .match-time { font-size: 13px; font-weight: 700; color: var(--dark); min-width: 52px; }
+  .match-teams { flex: 1; }
+  .match-teams .teams { font-size: 14px; font-weight: 500; }
+  .match-teams .meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .match-group { font-size: 10px; font-weight: 700; color: var(--muted); background: var(--light); padding: 2px 6px; border-radius: 2px; white-space: nowrap; }
+
+  .match-tv { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+  .tv-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 2px; white-space: nowrap; }
+  .tv-FOX { background: #003087; color: #fff; }
+  .tv-FS1 { background: #c8102e; color: #fff; }
+  .tv-Telemundo { background: #7b2d8b; color: #fff; }
+
+  .no-matches { padding: 32px 16px; text-align: center; color: var(--muted); font-size: 13px; }
+
+  /* 圖例 */
+  .wc-legend { display: flex; gap: 12px; padding: 10px 14px; background: var(--light); border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--muted); }
+
+  /* 今天指示 */
+  .today-label { background: var(--gold); color: var(--dark); font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 2px; margin-left: 4px; }
+</style>
+</head>
+<body>
+<div class="wc-widget">
+  <div class="wc-header">
+    <div class="wc-header-left">
+      <span class="wc-trophy">⚽</span>
+      <div>
+        <div class="wc-title">2026 FIFA 世界盃 — 賽程與轉播</div>
+        <div class="wc-subtitle">所有時間為美東時間（ET）</div>
+      </div>
+    </div>
+  </div>
+  <div class="date-bar" id="dateBar"></div>
+  <div class="matches" id="matchList"></div>
+  <div class="wc-legend">
+    <div class="legend-item"><span class="tv-badge tv-FOX">FOX</span>英語免費頻道</div>
+    <div class="legend-item"><span class="tv-badge tv-FS1">FS1</span>英語有線頻道</div>
+    <div class="legend-item"><span class="tv-badge tv-Telemundo">Telemundo</span>西語頻道</div>
+  </div>
+</div>
+
+<script>
+// 隊名中文對照
+const TEAM_ZH = {
+  "Mexico":"墨西哥","South Africa":"南非","South Korea":"南韓","Czechia":"捷克",
+  "Canada":"加拿大","Bosnia and Herzegovina":"波赫","USA":"美國","Paraguay":"巴拉圭",
+  "Qatar":"卡達","Switzerland":"瑞士","Brazil":"巴西","Morocco":"摩洛哥",
+  "Haiti":"海地","Scotland":"蘇格蘭","Australia":"澳洲","Türkiye":"土耳其",
+  "Germany":"德國","Curaçao":"古拉索","Netherlands":"荷蘭","Japan":"日本",
+  "Ivory Coast":"象牙海岸","Ecuador":"厄瓜多","Tunisia":"突尼西亞","Sweden":"瑞典",
+  "Spain":"西班牙","Cape Verde":"維德角","Belgium":"比利時","Egypt":"埃及",
+  "Saudi Arabia":"沙烏地阿拉伯","Uruguay":"烏拉圭","Iran":"伊朗","New Zealand":"紐西蘭",
+  "France":"法國","Senegal":"塞內加爾","Iraq":"伊拉克","Norway":"挪威",
+  "Argentina":"阿根廷","Algeria":"阿爾及利亞","Austria":"奧地利","Jordan":"約旦",
+  "Portugal":"葡萄牙","Congo DR":"民主剛果","England":"英格蘭","Croatia":"克羅埃西亞",
+  "Ghana":"迦納","Panama":"巴拿馬","Uzbekistan":"烏茲別克","Colombia":"哥倫比亞",
+};
+
+const zh = t => TEAM_ZH[t] || t;
+
+// 場地中文
+const VENUE_ZH = {
+  "Mexico City":"墨西哥城","Guadalajara":"瓜達拉哈拉","Toronto":"多倫多",
+  "Los Angeles":"洛杉磯","San Francisco Bay Area":"舊金山灣區",
+  "New York/New Jersey":"紐約/新澤西","Boston":"波士頓","Vancouver":"溫哥華",
+  "Houston":"休士頓","Dallas":"達拉斯","Philadelphia":"費城","Monterrey":"蒙特雷",
+  "Atlanta":"亞特蘭大","Seattle":"西雅圖","Miami":"邁阿密","Kansas City":"堪薩斯城",
+};
+const vz = v => VENUE_ZH[v] || v;
+
+// 完整賽程資料（小組賽）
+const MATCHES = [
+  // 6/11
+  {date:"2026-06-11",time:"3:00 PM",home:"Mexico",away:"South Africa",group:"A",venue:"Mexico City",tv:["FOX","Telemundo"]},
+  {date:"2026-06-11",time:"10:00 PM",home:"South Korea",away:"Czechia",group:"A",venue:"Guadalajara",tv:["FS1","Telemundo"]},
+  // 6/12
+  {date:"2026-06-12",time:"3:00 PM",home:"Canada",away:"Bosnia and Herzegovina",group:"B",venue:"Toronto",tv:["FOX","Telemundo"]},
+  {date:"2026-06-12",time:"9:00 PM",home:"USA",away:"Paraguay",group:"D",venue:"Los Angeles",tv:["FOX","Telemundo"]},
+  // 6/13
+  {date:"2026-06-13",time:"3:00 PM",home:"Qatar",away:"Switzerland",group:"B",venue:"San Francisco Bay Area",tv:["FOX","Telemundo"]},
+  {date:"2026-06-13",time:"6:00 PM",home:"Brazil",away:"Morocco",group:"C",venue:"New York/New Jersey",tv:["FS1","Telemundo"]},
+  {date:"2026-06-13",time:"9:00 PM",home:"Haiti",away:"Scotland",group:"C",venue:"Boston",tv:["FS1","Telemundo"]},
+  {date:"2026-06-13",time:"12:00 AM",home:"Australia",away:"Türkiye",group:"D",venue:"Vancouver",tv:["FOX","Telemundo"]},
+  // 6/14
+  {date:"2026-06-14",time:"1:00 PM",home:"Germany",away:"Curaçao",group:"E",venue:"Houston",tv:["FOX","Telemundo"]},
+  {date:"2026-06-14",time:"4:00 PM",home:"Netherlands",away:"Japan",group:"F",venue:"Dallas",tv:["FOX","Telemundo"]},
+  {date:"2026-06-14",time:"7:00 PM",home:"Ivory Coast",away:"Ecuador",group:"E",venue:"Philadelphia",tv:["FS1","Telemundo"]},
+  {date:"2026-06-14",time:"10:00 PM",home:"Tunisia",away:"Sweden",group:"F",venue:"Monterrey",tv:["FS1","Telemundo"]},
+  // 6/15
+  {date:"2026-06-15",time:"12:00 PM",home:"Spain",away:"Cape Verde",group:"H",venue:"Atlanta",tv:["FOX","Telemundo"]},
+  {date:"2026-06-15",time:"3:00 PM",home:"Belgium",away:"Egypt",group:"G",venue:"Seattle",tv:["FOX","Telemundo"]},
+  {date:"2026-06-15",time:"6:00 PM",home:"Saudi Arabia",away:"Uruguay",group:"H",venue:"Miami",tv:["FS1","Telemundo"]},
+  {date:"2026-06-15",time:"9:00 PM",home:"Iran",away:"New Zealand",group:"G",venue:"Los Angeles",tv:["FS1","Telemundo"]},
+  // 6/16
+  {date:"2026-06-16",time:"3:00 PM",home:"France",away:"Senegal",group:"I",venue:"New York/New Jersey",tv:["FOX","Telemundo"]},
+  {date:"2026-06-16",time:"6:00 PM",home:"Iraq",away:"Norway",group:"I",venue:"Boston",tv:["FOX","Telemundo"]},
+  {date:"2026-06-16",time:"9:00 PM",home:"Argentina",away:"Algeria",group:"J",venue:"Kansas City",tv:["FOX","Telemundo"]},
+  {date:"2026-06-16",time:"12:00 AM",home:"Austria",away:"Jordan",group:"J",venue:"San Francisco Bay Area",tv:["FS1","Telemundo"]},
+  // 6/17
+  {date:"2026-06-17",time:"1:00 PM",home:"Portugal",away:"Congo DR",group:"K",venue:"Houston",tv:["FOX","Telemundo"]},
+  {date:"2026-06-17",time:"4:00 PM",home:"England",away:"Croatia",group:"L",venue:"Dallas",tv:["FOX","Telemundo"]},
+  {date:"2026-06-17",time:"7:00 PM",home:"Ghana",away:"Panama",group:"L",venue:"Toronto",tv:["FS1","Telemundo"]},
+  {date:"2026-06-17",time:"10:00 PM",home:"Uzbekistan",away:"Colombia",group:"K",venue:"Mexico City",tv:["FS1","Telemundo"]},
+  // 6/18
+  {date:"2026-06-18",time:"12:00 PM",home:"Czechia",away:"South Africa",group:"A",venue:"Atlanta",tv:["FOX","Telemundo"]},
+  {date:"2026-06-18",time:"3:00 PM",home:"Switzerland",away:"Bosnia and Herzegovina",group:"B",venue:"Los Angeles",tv:["FOX","Telemundo"]},
+  {date:"2026-06-18",time:"6:00 PM",home:"Canada",away:"Qatar",group:"B",venue:"Vancouver",tv:["FS1","Telemundo"]},
+  {date:"2026-06-18",time:"9:00 PM",home:"Mexico",away:"South Korea",group:"A",venue:"Guadalajara",tv:["FOX","Telemundo"]},
+  // 6/19
+  {date:"2026-06-19",time:"3:00 PM",home:"USA",away:"Australia",group:"D",venue:"Seattle",tv:["FOX","Telemundo"]},
+  {date:"2026-06-19",time:"3:00 PM",home:"Scotland",away:"Morocco",group:"C",venue:"Boston",tv:["FOX","Telemundo"]},
+  {date:"2026-06-19",time:"9:00 PM",home:"Brazil",away:"Haiti",group:"C",venue:"Philadelphia",tv:["FOX","Telemundo"]},
+  {date:"2026-06-19",time:"12:00 AM",home:"Türkiye",away:"Paraguay",group:"D",venue:"San Francisco Bay Area",tv:["FS1","Telemundo"]},
+  // 6/20
+  {date:"2026-06-20",time:"1:00 PM",home:"Netherlands",away:"Sweden",group:"F",venue:"Houston",tv:["FOX","Telemundo"]},
+  {date:"2026-06-20",time:"4:00 PM",home:"Germany",away:"Ivory Coast",group:"E",venue:"Toronto",tv:["FOX","Telemundo"]},
+  {date:"2026-06-20",time:"8:00 PM",home:"Ecuador",away:"Curaçao",group:"E",venue:"Kansas City",tv:["FS1","Telemundo"]},
+  {date:"2026-06-20",time:"12:00 AM",home:"Tunisia",away:"Japan",group:"F",venue:"Monterrey",tv:["FS1","Telemundo"]},
+  // 6/21
+  {date:"2026-06-21",time:"12:00 PM",home:"Spain",away:"Saudi Arabia",group:"H",venue:"Atlanta",tv:["FOX","Telemundo"]},
+  {date:"2026-06-21",time:"3:00 PM",home:"Belgium",away:"Iran",group:"G",venue:"Los Angeles",tv:["FS1","Telemundo"]},
+  {date:"2026-06-21",time:"6:00 PM",home:"Uruguay",away:"Cape Verde",group:"H",venue:"Miami",tv:["FS1","Telemundo"]},
+  {date:"2026-06-21",time:"9:00 PM",home:"New Zealand",away:"Egypt",group:"G",venue:"Vancouver",tv:["FS1","Telemundo"]},
+  // 6/22
+  {date:"2026-06-22",time:"1:00 PM",home:"Argentina",away:"Austria",group:"J",venue:"Dallas",tv:["FOX","Telemundo"]},
+  {date:"2026-06-22",time:"5:00 PM",home:"France",away:"Iraq",group:"I",venue:"Philadelphia",tv:["FOX","Telemundo"]},
+  {date:"2026-06-22",time:"8:00 PM",home:"Norway",away:"Senegal",group:"I",venue:"New York/New Jersey",tv:["FOX","Telemundo"]},
+  {date:"2026-06-22",time:"11:00 PM",home:"Jordan",away:"Algeria",group:"J",venue:"San Francisco Bay Area",tv:["FS1","Telemundo"]},
+  // 6/23
+  {date:"2026-06-23",time:"1:00 PM",home:"Portugal",away:"Uzbekistan",group:"K",venue:"Houston",tv:["FOX","Telemundo"]},
+  {date:"2026-06-23",time:"4:00 PM",home:"England",away:"Ghana",group:"L",venue:"Boston",tv:["FOX","Telemundo"]},
+  {date:"2026-06-23",time:"7:00 PM",home:"Panama",away:"Croatia",group:"L",venue:"Toronto",tv:["FOX","Telemundo"]},
+  {date:"2026-06-23",time:"10:00 PM",home:"Colombia",away:"Congo DR",group:"K",venue:"Guadalajara",tv:["FS1","Telemundo"]},
+  // 6/24
+  {date:"2026-06-24",time:"3:00 PM",home:"Switzerland",away:"Canada",group:"B",venue:"Vancouver",tv:["FOX","Telemundo"]},
+  {date:"2026-06-24",time:"3:00 PM",home:"Bosnia and Herzegovina",away:"Qatar",group:"B",venue:"Seattle",tv:["FS1","Telemundo"]},
+  {date:"2026-06-24",time:"6:00 PM",home:"Brazil",away:"Scotland",group:"C",venue:"Miami",tv:["FOX","Telemundo"]},
+  {date:"2026-06-24",time:"6:00 PM",home:"Morocco",away:"Haiti",group:"C",venue:"Atlanta",tv:["FS1","Telemundo"]},
+  {date:"2026-06-24",time:"9:00 PM",home:"Mexico",away:"Czechia",group:"A",venue:"Mexico City",tv:["FOX","Telemundo"]},
+  {date:"2026-06-24",time:"9:00 PM",home:"South Korea",away:"South Africa",group:"A",venue:"Monterrey",tv:["FS1","Telemundo"]},
+  // 6/25
+  {date:"2026-06-25",time:"4:00 PM",home:"Ecuador",away:"Germany",group:"E",venue:"New York/New Jersey",tv:["FOX","Telemundo"]},
+  {date:"2026-06-25",time:"4:00 PM",home:"Curaçao",away:"Ivory Coast",group:"E",venue:"Philadelphia",tv:["FS1","Telemundo"]},
+  {date:"2026-06-25",time:"7:00 PM",home:"Tunisia",away:"Netherlands",group:"F",venue:"Kansas City",tv:["FOX","Telemundo"]},
+  {date:"2026-06-25",time:"7:00 PM",home:"Japan",away:"Sweden",group:"F",venue:"Dallas",tv:["FS1","Telemundo"]},
+  {date:"2026-06-25",time:"10:00 PM",home:"USA",away:"Türkiye",group:"D",venue:"Los Angeles",tv:["FOX","Telemundo"]},
+  {date:"2026-06-25",time:"10:00 PM",home:"Paraguay",away:"Australia",group:"D",venue:"San Francisco Bay Area",tv:["FS1","Telemundo"]},
+  // 6/26
+  {date:"2026-06-26",time:"3:00 PM",home:"Norway",away:"France",group:"I",venue:"Boston",tv:["FOX","Telemundo"]},
+  {date:"2026-06-26",time:"3:00 PM",home:"Senegal",away:"Iraq",group:"I",venue:"Toronto",tv:["FS1","Telemundo"]},
+  {date:"2026-06-26",time:"8:00 PM",home:"Uruguay",away:"Spain",group:"H",venue:"Guadalajara",tv:["FOX","Telemundo"]},
+  {date:"2026-06-26",time:"8:00 PM",home:"Cape Verde",away:"Saudi Arabia",group:"H",venue:"Houston",tv:["FS1","Telemundo"]},
+  {date:"2026-06-26",time:"11:00 PM",home:"New Zealand",away:"Belgium",group:"G",venue:"Vancouver",tv:["FOX","Telemundo"]},
+  {date:"2026-06-26",time:"11:00 PM",home:"Egypt",away:"Iran",group:"G",venue:"Seattle",tv:["FS1","Telemundo"]},
+  // 6/27
+  {date:"2026-06-27",time:"3:00 PM",home:"Algeria",away:"Austria",group:"J",venue:"Dallas",tv:["FOX","Telemundo"]},
+  {date:"2026-06-27",time:"3:00 PM",home:"Jordan",away:"Argentina",group:"J",venue:"Atlanta",tv:["FS1","Telemundo"]},
+  {date:"2026-06-27",time:"8:00 PM",home:"Congo DR",away:"Uzbekistan",group:"K",venue:"Kansas City",tv:["FOX","Telemundo"]},
+  {date:"2026-06-27",time:"8:00 PM",home:"Colombia",away:"Portugal",group:"K",venue:"Los Angeles",tv:["FS1","Telemundo"]},
+  {date:"2026-06-27",time:"11:00 PM",home:"Croatia",away:"England",group:"L",venue:"San Francisco Bay Area",tv:["FOX","Telemundo"]},
+  {date:"2026-06-27",time:"11:00 PM",home:"Panama",away:"Ghana",group:"L",venue:"Miami",tv:["FS1","Telemundo"]},
+];
+
+const DAYS_ZH = ["日","一","二","三","四","五","六"];
+
+function buildDateBar() {
+  const dates = [...new Set(MATCHES.map(m => m.date))].sort();
+  const today = new Date().toISOString().slice(0,10);
+  const bar = document.getElementById("dateBar");
+
+  dates.forEach(d => {
+    const dt = new Date(d + "T12:00:00");
+    const btn = document.createElement("button");
+    btn.className = "date-btn" + (d === today ? " today" : "");
+    btn.innerHTML = `<span class="day-num">${dt.getMonth()+1}/${dt.getDate()}</span><span class="day-name">週${DAYS_ZH[dt.getDay()]}</span>`;
+    btn.onclick = () => showDate(d);
+    btn.dataset.date = d;
+    bar.appendChild(btn);
+  });
+
+  // 預設顯示今天，若賽事未開始顯示第一天
+  const target = dates.includes(today) ? today : dates[0];
+  showDate(target);
+}
+
+function showDate(date) {
+  document.querySelectorAll(".date-btn").forEach(b => {
+    b.classList.toggle("active", b.dataset.date === date);
+  });
+
+  const matches = MATCHES.filter(m => m.date === date);
+  const list = document.getElementById("matchList");
+
+  if (!matches.length) {
+    list.innerHTML = `<div class="no-matches">本日無賽事</div>`;
+    return;
+  }
+
+  list.innerHTML = matches.map(m => `
+    <div class="match-row">
+      <div class="match-time">${m.time}</div>
+      <div class="match-teams">
+        <div class="teams">${zh(m.home)} vs ${zh(m.away)}</div>
+        <div class="meta">${vz(m.venue)}</div>
+      </div>
+      <div class="match-group">${m.group}組</div>
+      <div class="match-tv">
+        ${m.tv.map(t => `<span class="tv-badge tv-${t.replace(' ','')}">${t}</span>`).join("")}
+      </div>
+    </div>
+  `).join("");
+
+  // 自動捲動到選中的日期按鈕
+  const activeBtn = document.querySelector(`.date-btn[data-date="${date}"]`);
+  if (activeBtn) activeBtn.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+}
+
+buildDateBar();
+</script>
+</body>
+</html>
